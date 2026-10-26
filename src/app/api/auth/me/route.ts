@@ -1,0 +1,31 @@
+import { NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
+import { cookies } from 'next/headers';
+
+const JWT_SECRET = new TextEncoder().encode(
+    process.env.JWT_SECRET || 'aeroreserve_secret_key_12345'
+);
+
+export async function GET() {
+    try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get('token')?.value;
+
+        if (!token) {
+            return NextResponse.json({ user: null });
+        }
+
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+
+        return NextResponse.json({
+            user: {
+                id: payload.userId,
+                email: payload.email,
+                role: payload.role,
+                name: payload.name,
+            },
+        });
+    } catch (error) {
+        return NextResponse.json({ user: null });
+    }
+}
