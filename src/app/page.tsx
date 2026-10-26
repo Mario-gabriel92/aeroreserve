@@ -77,16 +77,9 @@ export default function FlightBookingFlow() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
-  // Autentificare
+  // Sesiune & Utilizator
   const [user, setUser] = useState<UserSession | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authFirstName, setAuthFirstName] = useState('');
-  const [authLastName, setAuthLastName] = useState('');
-  const [authError, setAuthError] = useState('');
 
   // Căutare rapidă bilet din Header
   const [headerRefSearch, setHeaderRefSearch] = useState('');
@@ -124,44 +117,6 @@ export default function FlightBookingFlow() {
         })
         .catch((err) => console.error('Sesiune nevalidă', err));
   }, []);
-
-  const handleAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError('');
-    setLoading(true);
-
-    const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
-    const payload =
-        authMode === 'login'
-            ? { email: authEmail, password: authPassword }
-            : { email: authEmail, password: authPassword, firstName: authFirstName, lastName: authLastName };
-
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setAuthError(data.error || 'A apărut o eroare');
-      } else {
-        if (authMode === 'register') {
-          setAuthMode('login');
-          setAuthError('Cont creat! Te poți autentifica.');
-        } else {
-          setUser(data.user);
-          setAuthModalOpen(false);
-          setAuthPassword('');
-        }
-      }
-    } catch {
-      setAuthError('Eroare conexiune server');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -245,7 +200,7 @@ export default function FlightBookingFlow() {
             </form>
 
             {/* MENIU UTILIZATOR */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {user ? (
                   <div className="relative">
                     <button
@@ -280,15 +235,6 @@ export default function FlightBookingFlow() {
                             <span>Rezervările Mele</span>
                           </Link>
 
-                          <Link
-                              href="/profile"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-2 px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-amber-400 transition"
-                          >
-                            <span>👤</span>
-                            <span>Profil & Setări</span>
-                          </Link>
-
                           {user.role === 'ADMIN' && (
                               <Link
                                   href="/admin"
@@ -313,15 +259,14 @@ export default function FlightBookingFlow() {
                     )}
                   </div>
               ) : (
-                  <button
-                      onClick={() => {
-                        setAuthError('');
-                        setAuthModalOpen(true);
-                      }}
-                      className="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
-                  >
-                    Autentificare / Cont Nou
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <Link href="/login" className="text-xs font-semibold text-slate-300 hover:text-white transition-colors">
+                      Autentificare
+                    </Link>
+                    <Link href="/register" className="bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 hover:brightness-110 px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-amber-500/20">
+                      Cont Nou
+                    </Link>
+                  </div>
               )}
             </div>
           </div>
@@ -660,33 +605,7 @@ export default function FlightBookingFlow() {
           )}
         </main>
 
-        {/* MODAL AUTH */}
-        {authModalOpen && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6 relative border-amber-500/20">
-                <button onClick={() => setAuthModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
-                <div className="text-center space-y-1">
-                  <h3 className="text-xl font-black text-white">{authMode === 'login' ? 'Autentificare' : 'Creare Cont'}</h3>
-                </div>
-                {authError && <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl">{authError}</div>}
-                <form onSubmit={handleAuthSubmit} className="space-y-4 text-xs">
-                  {authMode === 'register' && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <input type="text" placeholder="Prenume" required value={authFirstName} onChange={(e) => setAuthFirstName(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" />
-                        <input type="text" placeholder="Nume" required value={authLastName} onChange={(e) => setAuthLastName(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" />
-                      </div>
-                  )}
-                  <input type="email" placeholder="Email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" />
-                  <input type="password" placeholder="Parolă" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" />
-                  <button type="submit" disabled={loading} className="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-400/20">
-                    {loading ? 'Procesare...' : authMode === 'login' ? 'Intră în Cont ➔' : 'Creează Contul ➔'}
-                  </button>
-                </form>
-              </div>
-            </div>
-        )}
-
-        {/* MODAL SUCCESS */}
+        {/* MODAL SUCCESS (Se pastreaza pentru finalizarea rezervarii) */}
         {bookingSuccessData && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center space-y-6 relative border-amber-500/30">
@@ -697,8 +616,8 @@ export default function FlightBookingFlow() {
                   <div className="text-2xl font-mono font-black text-amber-400">{bookingSuccessData.bookingReference}</div>
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => setBookingSuccessData(null)} className="flex-1 py-3 bg-slate-800 text-white font-bold rounded-xl text-xs">Închide</button>
-                  <Link href={`/boarding-pass/${bookingSuccessData.bookingReference}`} className="flex-1 py-3 bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-400/20 text-center">Vezi Bilet ➔</Link>
+                  <button onClick={() => setBookingSuccessData(null)} className="flex-1 py-3 bg-slate-800 text-white font-bold rounded-xl text-xs hover:bg-slate-700 transition">Închide</button>
+                  <Link href={`/boarding-pass/${bookingSuccessData.bookingReference}`} className="flex-1 py-3 bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-400/20 text-center hover:bg-amber-300 transition">Vezi Bilet ➔</Link>
                 </div>
               </div>
             </div>
