@@ -33,7 +33,20 @@ export async function GET() {
             return NextResponse.json({ error: 'Utilizatorul nu există' }, { status: 404 });
         }
 
-        return NextResponse.json({ user: res.rows[0] });
+        const dbUser = res.rows[0];
+
+        // "Traducem" câmpul 'name' din baza de date în formatul cerut de frontend
+        const nameParts = (dbUser.name || '').split(' ');
+        const first_name = nameParts[0] || '';
+        const last_name = nameParts.slice(1).join(' ') || '';
+
+        return NextResponse.json({
+            user: {
+                ...dbUser,
+                first_name,
+                last_name
+            }
+        });
     } catch (error: unknown) {
         const err = error as Error;
         return NextResponse.json({ error: err.message }, { status: 500 });
@@ -53,11 +66,20 @@ export async function PUT(request: Request) {
         const userPayload = payload as CustomPayload;
 
         const body = await request.json();
-        const { name } = body;
 
-        await query(`UPDATE users SET name = $1 WHERE id = $2`, [name || null, userPayload.id]);
+        // Preluăm datele de la frontend și le combinăm pentru baza de date
+        const { firstName, lastName } = body;
+        const fullName = `${firstName || ''} ${lastName || ''}`.trim();
 
-        return NextResponse.json({ success: true });
+        await query(
+            `UPDATE users SET name = $1 WHERE id = $2`,
+            [fullName || null, userPayload.id]
+        );
+
+        return NextResponse.json({
+            success: true,
+            message: 'Profilul a fost actualizat cu succes!'
+        });
     } catch (error: unknown) {
         const err = error as Error;
         return NextResponse.json({ error: err.message }, { status: 500 });
