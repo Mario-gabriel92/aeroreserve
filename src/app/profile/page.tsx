@@ -174,9 +174,9 @@ export default function ProfilePage() {
                             </div>
 
                             <div className="border-t border-slate-800/80 pt-4 flex justify-between items-center">
-                <span className="text-[10px] text-slate-500 font-mono">
-                  Rol: <b className="text-slate-300">{profile.role}</b> • Membru din: {new Date(profile.created_at).toLocaleDateString()}
-                </span>
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                    Rol: <b className="text-slate-300">{profile.role}</b> | Membru din: {new Date(profile.created_at).toLocaleDateString()}
+                                </span>
 
                                 <button
                                     type="submit"
@@ -189,8 +189,9 @@ export default function ProfilePage() {
                         </form>
                     </div>
                 ) : (
-                    <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-6 rounded-2xl text-center text-xs">
-                        Trebuie să fii autentificat pentru a accesa această pagină.
+                    <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-6 rounded-2xl text-center text-xs space-y-1">
+                        <p className="font-bold">Eroare la accesarea profilului</p>
+                        <p>{message?.text || 'Trebuie să fii autentificat pentru a accesa această pagină.'}</p>
                     </div>
                 )}
             </div>

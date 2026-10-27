@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+import { jwtVerify, JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'aeroreserve_secret_key_12345'
 );
+
+interface CustomPayload extends JWTPayload {
+    id?: number;
+    userId?: number;
+    email?: string;
+    role?: string;
+    name?: string;
+}
 
 export async function GET() {
     try {
@@ -16,13 +24,15 @@ export async function GET() {
         }
 
         const { payload } = await jwtVerify(token, JWT_SECRET);
+        const userPayload = payload as CustomPayload;
 
         return NextResponse.json({
             user: {
-                id: payload.userId,
-                email: payload.email,
-                role: payload.role,
-                name: payload.name,
+                // AICI ERA PROBLEMA: Acum acoperim ambele variante
+                id: userPayload.id || userPayload.userId,
+                email: userPayload.email,
+                role: userPayload.role,
+                name: userPayload.name,
             },
         });
     } catch (error) {
