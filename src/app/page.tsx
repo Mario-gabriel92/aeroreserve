@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
+
 // --- INTERFEȚE ---
 interface Airport {
   iata_code: string;
@@ -74,7 +75,6 @@ const TICKET_FARES: TicketFare[] = [
   },
 ];
 
-// Adăugăm tipul explicit :Variants
 const pageVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
@@ -99,12 +99,24 @@ export default function FlightBookingFlow() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<UserSession | null>(null);
 
-  const [airports] = useState<Airport[]>([
-    { iata_code: 'OTP', name: 'Henri Coandă', city: 'București' },
-    { iata_code: 'LHR', name: 'Heathrow', city: 'Londra' },
-    { iata_code: 'CLJ', name: 'Avram Iancu', city: 'Cluj-Napoca' },
-    { iata_code: 'CDG', name: 'Charles de Gaulle', city: 'Paris' },
-  ]);
+  const [airports, setAirports] = useState<Airport[]>([]);
+
+  useEffect(() => {
+    const fetchAirports = async () => {
+      try {
+        const res = await fetch('/api/airports');
+        if (!res.ok) throw new Error('Eroare la preluarea aeroporturilor');
+        const data = await res.json();
+        if (data.airports) {
+          setAirports(data.airports);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchAirports();
+  }, []);
+
   const [origin, setOrigin] = useState('OTP');
   const [destination, setDestination] = useState('LHR');
 
@@ -169,6 +181,16 @@ export default function FlightBookingFlow() {
     const seatFee = selectedSeat ? Number(selectedSeat.base_seat_fee) : 0;
     return farePrice + seatFee;
   };
+
+  // Grupăm scaunele pe rânduri
+  const groupedSeats = seats.reduce((acc, seat) => {
+    const row = seat.seat_row || 1;
+    if (!acc[row]) acc[row] = [];
+    acc[row].push(seat);
+    return acc;
+  }, {} as Record<number, typeof seats>);
+
+  const sortedRows = Object.keys(groupedSeats).map(Number).sort((a, b) => a - b);
 
   return (
       <div className="flex-1 flex flex-col font-sans">
@@ -241,7 +263,7 @@ export default function FlightBookingFlow() {
                   </div>
 
                   <motion.button
-                      whileHover={{ scale: 1.03, boxShadow: "0px 0px 20px rgba(245, 158, 11, 0.4)" }}
+                      whileHover={{ scale: 1.03, boxShadow: "0px 0px 20px #f59e0b66" }}
                       whileTap={{ scale: 0.97 }}
                       onClick={handleSearchFlights}
                       disabled={loading}
@@ -279,7 +301,7 @@ export default function FlightBookingFlow() {
 
                   {flights.length === 0 ? (
                       <div className="bg-slate-900/50 p-12 text-center rounded-2xl border border-slate-800 text-slate-400">
-                        Nu s-au găsit zboruri directe pentru această rută. Încearcă <b>OTP ➔ LHR</b>.
+                        Nu s-au găsit zboruri directe pentru această rută.
                       </div>
                   ) : (
                       <motion.div
@@ -292,7 +314,7 @@ export default function FlightBookingFlow() {
                             <motion.div
                                 key={f.id}
                                 variants={listItemVariants}
-                                whileHover={{ scale: 1.01, borderColor: "rgba(245, 158, 11, 0.5)" }}
+                                whileHover={{ scale: 1.01, borderColor: "#f59e0b80" }}
                                 className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur-md transition flex flex-wrap justify-between items-center gap-6 shadow-lg"
                             >
                               <div className="space-y-1">
@@ -364,7 +386,7 @@ export default function FlightBookingFlow() {
                           <motion.div
                               key={fare.id}
                               variants={listItemVariants}
-                              whileHover={{ y: -8, boxShadow: "0px 15px 30px rgba(0,0,0,0.4)" }}
+                              whileHover={{ y: -8, boxShadow: "0px 15px 30px #00000066" }}
                               onClick={() => setSelectedFare(fare)}
                               className={`cursor-pointer rounded-2xl p-6 border transition-colors duration-300 flex flex-col justify-between relative overflow-hidden ${
                                   isSelected
@@ -409,7 +431,7 @@ export default function FlightBookingFlow() {
 
                   <div className="flex justify-end pt-4">
                     <motion.button
-                        whileHover={{ scale: 1.03, boxShadow: "0px 0px 20px rgba(245, 158, 11, 0.4)" }}
+                        whileHover={{ scale: 1.03, boxShadow: "0px 0px 20px #f59e0b66" }}
                         whileTap={{ scale: 0.97 }}
                         onClick={handleProceedToSeats}
                         disabled={loading}
@@ -421,7 +443,7 @@ export default function FlightBookingFlow() {
                 </motion.div>
             )}
 
-            {/* PASUL 4: SEAT MAP */}
+            {/* PASUL 4: SEAT MAP V3 (FUZELAJ ORIZONTAL SCROLLABIL) */}
             {step === 4 && selectedFlight && (
                 <motion.div
                     key="step4"
@@ -429,9 +451,9 @@ export default function FlightBookingFlow() {
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className="flex flex-col items-center w-full"
+                    className="w-full flex flex-col items-center"
                 >
-                  <div className="w-full flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                  <div className="w-full max-w-4xl flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
                     <div>
                       <h2 className="text-xl font-bold text-white">Selectare Fotoliu Cabină</h2>
                       <p className="text-xs text-slate-400">
@@ -444,68 +466,75 @@ export default function FlightBookingFlow() {
                   </div>
 
                   {/* FUSELAJ ORIZONTAL */}
-                  <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="w-full overflow-x-auto pb-8 pt-4 custom-scrollbar"
-                  >
-                    <div className="w-max flex items-center bg-slate-950/80 backdrop-blur-sm border-2 border-slate-800 rounded-3xl py-8 px-8 shadow-2xl relative my-2 mx-auto">
-                      <div className="relative w-44 h-56 flex items-center justify-end pr-4 border-r-2 border-slate-800/80 mr-6 shrink-0">
-                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-center">
-                          <div className="text-[10px] font-mono tracking-widest text-cyan-400 font-extrabold uppercase bg-cyan-400/10 px-3 py-1.5 rounded-lg border border-cyan-400/20">
-                            👨‍✈️ COCKPIT
-                          </div>
+                  <div className="w-full overflow-x-auto pb-6 pt-4 custom-scrollbar">
+                    <div className="w-max flex items-center bg-slate-50 border-[12px] border-slate-200 rounded-[4rem] py-12 px-10 shadow-2xl relative mx-auto my-2">
+
+                      {/* Botul avionului / Cockpit (Stânga) */}
+                      <div className="relative w-28 h-64 flex items-center justify-end pr-8 border-r-[8px] border-slate-200 mr-10 shrink-0">
+                        <div className="absolute left-0 w-12 h-32 bg-slate-200 rounded-r-full opacity-70"></div>
+                        <div className="text-[10px] font-mono tracking-widest text-slate-400 font-extrabold uppercase -rotate-90 whitespace-nowrap absolute right-0">
+                          COCKPIT
                         </div>
                       </div>
 
-                      <div className="flex gap-3 z-10 items-center shrink-0">
-                        {Array.from(new Set(seats.map((s) => s.seat_row)))
-                            .sort((a, b) => a - b)
-                            .map((rowNum) => {
-                              const rowSeats = seats.filter((s) => s.seat_row === rowNum);
-                              const topSeats = rowSeats.filter((s) => ['A', 'B'].includes(s.seat_letter));
-                              const bottomSeats = rowSeats.filter((s) => ['C', 'D'].includes(s.seat_letter));
+                      {sortedRows.length === 0 ? (
+                          <p className="text-center text-slate-500 py-10 font-medium px-20">Nu s-au găsit scaune pentru acest zbor.</p>
+                      ) : (
+                          <div className="flex gap-4 z-10 items-center shrink-0">
+                            {sortedRows.map((rowNum) => {
+                              const rowSeats = groupedSeats[rowNum].sort((a, b) =>
+                                  (a.seat_letter || '').localeCompare(b.seat_letter || '')
+                              );
 
-                              const isVIP = rowNum <= 3;
-                              const isBusiness = rowNum >= 4 && rowNum <= 10;
+                              // Împărțim rândul în Sus (ex: A, B, C) și Jos (ex: D, E, F)
+                              const half = Math.ceil(rowSeats.length / 2);
+                              const topGroup = rowSeats.slice(0, half);
+                              const bottomGroup = rowSeats.slice(half);
 
                               return (
-                                  <div key={rowNum} className="flex flex-col items-center gap-2 p-1.5 rounded-xl shrink-0">
+                                  <div key={rowNum} className="flex flex-col items-center relative shrink-0">
+                                    {/* Geamuri laterale simulând marginea ferestrei */}
+                                    <div className="absolute -top-10 w-8 h-1.5 bg-sky-200 rounded-full opacity-60"></div>
+                                    <div className="absolute -bottom-10 w-8 h-1.5 bg-sky-200 rounded-full opacity-60"></div>
+
+                                    {/* Scaune Sus */}
                                     <div className="flex flex-col gap-2">
-                                      {topSeats.map((seat) => (
+                                      {topGroup.map(seat => (
                                           <SeatButton
                                               key={seat.flight_seat_id}
                                               seat={seat}
-                                              isVIP={isVIP}
-                                              isBusiness={isBusiness}
                                               isSelected={selectedSeat?.flight_seat_id === seat.flight_seat_id}
-                                              onSelect={() => setSelectedSeat(seat)}
+                                              onClick={() => setSelectedSeat(seat)}
                                           />
                                       ))}
                                     </div>
-                                    <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-900 px-2 py-0.5 rounded-md my-1">{rowNum}</span>
+
+                                    {/* Culoarul */}
+                                    <div className="w-8 h-8 flex justify-center items-center text-slate-400 font-bold text-xs bg-slate-200/70 rounded-md my-3">
+                                      {rowNum}
+                                    </div>
+
+                                    {/* Scaune Jos */}
                                     <div className="flex flex-col gap-2">
-                                      {bottomSeats.map((seat) => (
+                                      {bottomGroup.map(seat => (
                                           <SeatButton
                                               key={seat.flight_seat_id}
                                               seat={seat}
-                                              isVIP={isVIP}
-                                              isBusiness={isBusiness}
                                               isSelected={selectedSeat?.flight_seat_id === seat.flight_seat_id}
-                                              onSelect={() => setSelectedSeat(seat)}
+                                              onClick={() => setSelectedSeat(seat)}
                                           />
                                       ))}
                                     </div>
                                   </div>
-                              );
+                              )
                             })}
-                      </div>
+                          </div>
+                      )}
                     </div>
-                  </motion.div>
+                  </div>
 
                   {/* SUMAR BILET & FINALIZARE REZERVARE */}
-                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 max-w-2xl w-full mt-2 shadow-2xl flex flex-wrap items-center justify-between gap-4 backdrop-blur-xl">
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 w-full max-w-4xl mt-6 shadow-2xl flex flex-wrap items-center justify-between gap-4 backdrop-blur-xl">
                     <div>
                       <div className="text-xs text-slate-400">Total Final de Plată</div>
                       <div className="text-2xl font-black text-amber-400">{calculateTotalPrice().toFixed(2)} €</div>
@@ -525,7 +554,7 @@ export default function FlightBookingFlow() {
                     )}
 
                     <motion.button
-                        whileHover={selectedSeat ? { scale: 1.05, boxShadow: "0px 0px 20px rgba(245, 158, 11, 0.4)" } : {}}
+                        whileHover={selectedSeat ? { scale: 1.05, boxShadow: "0px 0px 20px #f59e0b66" } : {}}
                         whileTap={selectedSeat ? { scale: 0.95 } : {}}
                         disabled={!selectedSeat || loading}
                         onClick={async () => {
@@ -541,6 +570,7 @@ export default function FlightBookingFlow() {
                                 passengerName: user ? user.name || user.email : 'Pasager AeroReserve',
                                 passengerType: 'ADULT',
                                 totalPrice: calculateTotalPrice(),
+                                userId: user ? user.id : null,
                               }),
                             });
                             const data = await res.json();
@@ -623,30 +653,29 @@ function StepBadge({ num, label, active, completed }: { num: number; label: stri
   );
 }
 
-function SeatButton({ seat, isSelected, isVIP, isBusiness, onSelect }: { seat: Seat; isSelected: boolean; isVIP?: boolean; isBusiness?: boolean; onSelect: () => void }) {
-  const isOccupied = seat.status === 'OCCUPIED';
-  let style = 'bg-slate-800/80 text-slate-300 border-slate-700';
-  if (isVIP) style = 'bg-amber-500/10 text-amber-300 border-amber-500/40';
-  else if (isBusiness) style = 'bg-blue-500/10 text-blue-300 border-blue-500/30';
+// Componenta de Scaun Mecanic
+function SeatButton({ seat, isSelected, onClick }: { seat: Seat; isSelected: boolean; onClick: () => void }) {
+  const isAvailable = seat.status === 'AVAILABLE';
+  const label = `${seat.seat_letter}`;
 
-  let icon = seat.seat_letter;
-  if (isOccupied) {
-    style = 'cursor-not-allowed border-transparent text-white opacity-40 bg-slate-800';
-    icon = '×';
+  let style = "";
+  if (!isAvailable) {
+    style = "bg-slate-300 text-slate-500 border-slate-400 shadow-[0_4px_0_#94a3b8] opacity-60 cursor-not-allowed";
   } else if (isSelected) {
-    style = 'bg-amber-400 text-slate-950 font-black border-2 border-white shadow-[0_0_15px_rgba(245,158,11,0.5)] z-10';
+    style = "bg-amber-400 text-slate-900 border-amber-500 shadow-[0_1px_0_#b45309] translate-y-[3px] cursor-pointer";
+  } else if (seat.seat_class === 'BUSINESS') {
+    style = "bg-violet-200 text-violet-800 border-violet-300 shadow-[0_4px_0_#8b5cf6] hover:-translate-y-1 hover:shadow-[0_6px_0_#8b5cf6] active:translate-y-[4px] active:shadow-[0_0px_0_#8b5cf6] cursor-pointer";
+  } else {
+    style = "bg-sky-100 text-sky-800 border-sky-300 shadow-[0_4px_0_#38bdf8] hover:-translate-y-1 hover:shadow-[0_6px_0_#38bdf8] active:translate-y-[4px] active:shadow-[0_0px_0_#38bdf8] cursor-pointer";
   }
 
   return (
-      <motion.button
-          disabled={isOccupied}
-          onClick={onSelect}
-          whileHover={!isOccupied && !isSelected ? { scale: 1.1, backgroundColor: 'rgba(245,158,11,0.2)' } : {}}
-          whileTap={!isOccupied ? { scale: 0.85 } : {}}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          className={`w-10 h-10 text-xs font-bold rounded-xl border flex items-center justify-center shadow-sm ${style}`}
+      <button
+          disabled={!isAvailable}
+          onClick={onClick}
+          className={`w-10 h-11 relative flex items-center justify-center font-bold text-xs border rounded-t-[14px] rounded-b-md transition-all duration-150 ${style}`}
       >
-        {icon}
-      </motion.button>
+        {label}
+      </button>
   );
 }

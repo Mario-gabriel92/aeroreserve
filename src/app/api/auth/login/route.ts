@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         }
 
         const token = await new SignJWT({
-            userId: user.id,
+            id: user.id,
             email: user.email,
             role: user.role,
             name: `${user.first_name} ${user.last_name}`.trim(),
