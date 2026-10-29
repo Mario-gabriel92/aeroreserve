@@ -5,12 +5,30 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plane, Search, Ticket, Settings, ShieldAlert, LogOut, ChevronDown, User as UserIcon } from 'lucide-react';
+import { useCurrency, Currency } from '@/context/CurrencyContext';
 
 interface UserSession {
     id: number;
     email: string;
     role: 'CUSTOMER' | 'ADMIN';
     name?: string;
+}
+
+function CurrencySelector() {
+    const { currency, setCurrency } = useCurrency();
+
+    return (
+        <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as Currency)}
+            className="bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold rounded-xl px-3 py-2 h-10 focus:outline-none focus:border-amber-400 cursor-pointer transition shadow-sm hover:border-slate-600"
+        >
+            <option value="EUR">EUR (€)</option>
+            <option value="RON">RON (lei)</option>
+            <option value="USD">USD ($)</option>
+            <option value="GBP">GBP (£)</option>
+        </select>
+    );
 }
 
 export default function Navbar() {
@@ -20,7 +38,6 @@ export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [searchRef, setSearchRef] = useState('');
 
-    // Verificăm sesiunea la fiecare schimbare de pagină
     useEffect(() => {
         fetch('/api/auth/me')
             .then((res) => res.json())
@@ -43,7 +60,6 @@ export default function Navbar() {
         if (searchRef.trim()) router.push(`/boarding-pass/${searchRef.trim().toUpperCase()}`);
     };
 
-    // Ascundem navbar-ul dacă suntem în interiorul panoului de admin (opțional)
     if (pathname.startsWith('/admin')) return null;
 
     return (
@@ -70,27 +86,31 @@ export default function Navbar() {
                         placeholder="Verifică Bilet (ex: AER-3WC3)"
                         value={searchRef}
                         onChange={(e) => setSearchRef(e.target.value)}
-                        className="bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all w-64 placeholder:text-slate-500"
+                        className="bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2 h-10 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all w-64 placeholder:text-slate-500"
                     />
                 </form>
 
                 {/* ACTIONS */}
                 <div className="flex items-center gap-4">
+
+                    {/* AICI ESTE BUTONUL NOU DE VALUTĂ */}
+                    <CurrencySelector />
+
                     {user ? (
                         <div className="relative">
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setMenuOpen(!menuOpen)}
-                                className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-xl transition-colors"
+                                className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 h-10 px-3 rounded-xl transition-colors"
                             >
                                 <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center">
                                     <UserIcon size={16} className="text-amber-400" />
                                 </div>
                                 <div className="flex flex-col items-start hidden sm:flex">
-                  <span className="text-xs font-bold text-white leading-none mb-1">
-                    {user.name || user.email.split('@')[0]}
-                  </span>
+                                    <span className="text-xs font-bold text-white leading-none mb-1">
+                                        {user.name || user.email.split('@')[0]}
+                                    </span>
                                     {user.role === 'ADMIN' && (
                                         <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest leading-none">Admin</span>
                                     )}
@@ -147,7 +167,7 @@ export default function Navbar() {
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-amber-500/20 transition-colors"
+                                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2 h-10 rounded-xl text-sm font-bold shadow-lg shadow-amber-500/20 transition-colors flex items-center justify-center"
                                 >
                                     Cont Nou
                                 </motion.button>

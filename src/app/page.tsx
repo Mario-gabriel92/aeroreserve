@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { useCurrency } from '@/context/CurrencyContext'; // <--- IMPORT NOU
 
 // --- INTERFEȚE ---
 interface Airport {
@@ -96,6 +97,8 @@ const listItemVariants: Variants = {
 
 export default function FlightBookingFlow() {
   const router = useRouter();
+  const { formatPrice } = useCurrency(); // <--- UTILIZARE HOOK VALUTĂ
+
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<UserSession | null>(null);
 
@@ -179,10 +182,9 @@ export default function FlightBookingFlow() {
     const baseDynamic = Number(selectedFlight.dynamic_price);
     const farePrice = baseDynamic * selectedFare.priceMultiplier;
     const seatFee = selectedSeat ? Number(selectedSeat.base_seat_fee) : 0;
-    return farePrice + seatFee;
+    return farePrice + seatFee; // Această valoare rămâne mereu EUR
   };
 
-  // Grupăm scaunele pe rânduri
   const groupedSeats = seats.reduce((acc, seat) => {
     const row = seat.seat_row || 1;
     if (!acc[row]) acc[row] = [];
@@ -195,9 +197,10 @@ export default function FlightBookingFlow() {
   return (
       <div className="flex-1 flex flex-col font-sans">
 
-        {/* BARĂ DE PROGRES REZERVARE */}
-        <div className="bg-slate-950/60 border-b border-slate-800/60 py-3 px-6 sticky top-[68px] z-30 backdrop-blur-md">
-          <div className="max-w-6xl mx-auto flex items-center justify-center gap-3 text-xs font-medium">
+        {/* BARĂ DE PROGRES REZERVARE (Acum responsivă) */}
+        <div className="bg-slate-950/60 border-b border-slate-800/60 py-3 px-4 md:px-6 sticky top-[68px] z-30 backdrop-blur-md">
+          {/* VARIANTA DESKTOP */}
+          <div className="hidden md:flex max-w-6xl mx-auto items-center justify-center gap-3 text-xs font-medium">
             <StepBadge num={1} label="Căutare" active={step === 1} completed={step > 1} />
             <span className="text-slate-700">➔</span>
             <StepBadge num={2} label="Selectare Zbor" active={step === 2} completed={step > 2} />
@@ -205,6 +208,24 @@ export default function FlightBookingFlow() {
             <StepBadge num={3} label="Pachet Bilet" active={step === 3} completed={step > 3} />
             <span className="text-slate-700">➔</span>
             <StepBadge num={4} label="Alegere Loc" active={step === 4} completed={false} />
+          </div>
+
+          {/* VARIANTA MOBIL (Bară compactă de progres pe 2 rânduri) */}
+          <div className="flex md:hidden flex-col items-center justify-center gap-2">
+            <div className="text-[11px] font-bold text-amber-400 uppercase tracking-widest">
+              Pasul {step} din 4
+            </div>
+            <div className="w-full max-w-[240px] h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <motion.div
+                  className="h-full bg-amber-400"
+                  initial={{ width: `${((step - 1) / 4) * 100}%` }}
+                  animate={{ width: `${(step / 4) * 100}%` }}
+                  transition={{ duration: 0.3 }}
+              />
+            </div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              {step === 1 ? 'Căutare Zboruri' : step === 2 ? 'Selectare Zbor' : step === 3 ? 'Alegere Pachet' : 'Selectare Fotoliu'}
+            </div>
           </div>
         </div>
 
@@ -334,7 +355,7 @@ export default function FlightBookingFlow() {
                               <div className="text-right flex items-center gap-6">
                                 <div>
                                   <div className="text-xs text-slate-400">Preț Dinamic de la</div>
-                                  <div className="text-2xl font-black text-amber-400">{f.dynamic_price} €</div>
+                                  <div className="text-2xl font-black text-amber-400">{formatPrice(Number(f.dynamic_price))}</div>
                                 </div>
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
@@ -422,7 +443,7 @@ export default function FlightBookingFlow() {
 
                             <div className="border-t border-slate-800/80 pt-4 flex justify-between items-baseline">
                               <span className="text-xs text-slate-400">Total Pachet:</span>
-                              <span className="text-xl font-black text-amber-400">{farePrice} €</span>
+                              <span className="text-xl font-black text-amber-400">{formatPrice(Number(farePrice))}</span>
                             </div>
                           </motion.div>
                       );
@@ -443,7 +464,7 @@ export default function FlightBookingFlow() {
                 </motion.div>
             )}
 
-            {/* PASUL 4: SEAT MAP V3 (FUZELAJ ORIZONTAL SCROLLABIL) */}
+            {/* PASUL 4: SEAT MAP */}
             {step === 4 && selectedFlight && (
                 <motion.div
                     key="step4"
@@ -465,11 +486,9 @@ export default function FlightBookingFlow() {
                     </button>
                   </div>
 
-                  {/* FUSELAJ ORIZONTAL */}
                   <div className="w-full overflow-x-auto pb-6 pt-4 custom-scrollbar">
                     <div className="w-max flex items-center bg-slate-50 border-[12px] border-slate-200 rounded-[4rem] py-12 px-10 shadow-2xl relative mx-auto my-2">
 
-                      {/* Botul avionului / Cockpit (Stânga) */}
                       <div className="relative w-28 h-64 flex items-center justify-end pr-8 border-r-[8px] border-slate-200 mr-10 shrink-0">
                         <div className="absolute left-0 w-12 h-32 bg-slate-200 rounded-r-full opacity-70"></div>
                         <div className="text-[10px] font-mono tracking-widest text-slate-400 font-extrabold uppercase -rotate-90 whitespace-nowrap absolute right-0">
@@ -486,18 +505,15 @@ export default function FlightBookingFlow() {
                                   (a.seat_letter || '').localeCompare(b.seat_letter || '')
                               );
 
-                              // Împărțim rândul în Sus (ex: A, B, C) și Jos (ex: D, E, F)
                               const half = Math.ceil(rowSeats.length / 2);
                               const topGroup = rowSeats.slice(0, half);
                               const bottomGroup = rowSeats.slice(half);
 
                               return (
                                   <div key={rowNum} className="flex flex-col items-center relative shrink-0">
-                                    {/* Geamuri laterale simulând marginea ferestrei */}
                                     <div className="absolute -top-10 w-8 h-1.5 bg-sky-200 rounded-full opacity-60"></div>
                                     <div className="absolute -bottom-10 w-8 h-1.5 bg-sky-200 rounded-full opacity-60"></div>
 
-                                    {/* Scaune Sus */}
                                     <div className="flex flex-col gap-2">
                                       {topGroup.map(seat => (
                                           <SeatButton
@@ -509,12 +525,10 @@ export default function FlightBookingFlow() {
                                       ))}
                                     </div>
 
-                                    {/* Culoarul */}
                                     <div className="w-8 h-8 flex justify-center items-center text-slate-400 font-bold text-xs bg-slate-200/70 rounded-md my-3">
                                       {rowNum}
                                     </div>
 
-                                    {/* Scaune Jos */}
                                     <div className="flex flex-col gap-2">
                                       {bottomGroup.map(seat => (
                                           <SeatButton
@@ -533,11 +547,10 @@ export default function FlightBookingFlow() {
                     </div>
                   </div>
 
-                  {/* SUMAR BILET & FINALIZARE REZERVARE */}
                   <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 w-full max-w-4xl mt-6 shadow-2xl flex flex-wrap items-center justify-between gap-4 backdrop-blur-xl">
                     <div>
                       <div className="text-xs text-slate-400">Total Final de Plată</div>
-                      <div className="text-2xl font-black text-amber-400">{calculateTotalPrice().toFixed(2)} €</div>
+                      <div className="text-2xl font-black text-amber-400">{formatPrice(calculateTotalPrice())}</div>
                     </div>
 
                     {selectedSeat ? (
@@ -569,7 +582,7 @@ export default function FlightBookingFlow() {
                                 flightSeatId: selectedSeat.flight_seat_id,
                                 passengerName: user ? user.name || user.email : 'Pasager AeroReserve',
                                 passengerType: 'ADULT',
-                                totalPrice: calculateTotalPrice(),
+                                totalPrice: calculateTotalPrice(), // Trimis nealterat (EUR) către baza de date
                                 userId: user ? user.id : null,
                               }),
                             });
@@ -623,9 +636,9 @@ export default function FlightBookingFlow() {
                     <div className="text-3xl font-mono font-black text-amber-400">{bookingSuccessData.bookingReference}</div>
                   </div>
                   <div className="flex gap-3">
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setBookingSuccessData(null)} className="flex-1 py-3.5 bg-slate-800 text-white font-bold rounded-xl text-xs hover:bg-slate-700 transition">Închide</motion.button>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setBookingSuccessData(null)} className="flex-1 py-3.5 bg-slate-800 text-white font-bold rounded-xl text-xs hover:bg-slate-700 transition cursor-pointer">Închide</motion.button>
                     <Link href={`/boarding-pass/${bookingSuccessData.bookingReference}`} className="flex-1">
-                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full py-3.5 bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-400/20 text-center hover:bg-amber-300 transition">
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full py-3.5 bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-400/20 text-center hover:bg-amber-300 transition cursor-pointer">
                         Vezi Bilet ➔
                       </motion.div>
                     </Link>
@@ -653,7 +666,6 @@ function StepBadge({ num, label, active, completed }: { num: number; label: stri
   );
 }
 
-// Componenta de Scaun Mecanic
 function SeatButton({ seat, isSelected, onClick }: { seat: Seat; isSelected: boolean; onClick: () => void }) {
   const isAvailable = seat.status === 'AVAILABLE';
   const label = `${seat.seat_letter}`;
