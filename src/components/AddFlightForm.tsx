@@ -27,6 +27,7 @@ export default function AddFlightForm() {
             });
 
             if (res.ok) {
+                // Resetăm formularul după o inserare reușită
                 setFormData({
                     flightNumber: '',
                     originIata: 'OTP',
@@ -35,13 +36,14 @@ export default function AddFlightForm() {
                     arrivalTime: '',
                     basePrice: '120.00',
                 });
+                // Dăm un refresh la rute pentru a actualiza tabelul și statisticile
                 router.refresh();
             } else {
                 const errorData = await res.json();
                 alert(errorData.error || 'Eroare la adăugarea zborului');
             }
         } catch {
-            alert('Eroare de conexiune');
+            alert('Eroare de conexiune cu serverul.');
         } finally {
             setLoading(false);
         }
@@ -49,25 +51,26 @@ export default function AddFlightForm() {
 
     return (
         <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-6 shadow-lg text-white">
-            <h2 className="text-lg font-bold flex items-center gap-2 mb-4">
-                <span>✈️</span> Adăugare Zbor Nou în Sistem
+            <h2 className="text-lg font-bold flex items-center gap-2 mb-6">
+                <span className="bg-amber-500/20 text-amber-400 p-2 rounded-lg">✈️</span>
+                Adăugare Zbor Nou în Sistem
             </h2>
 
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Număr Zbor (ex: RO-301)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Număr Zbor</label>
                     <input
                         type="text"
                         required
-                        placeholder="RO-301"
+                        placeholder="ex: RO-301"
                         value={formData.flightNumber}
                         onChange={(e) => setFormData({ ...formData, flightNumber: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-500/50 transition"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Origine (IATA)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Origine (IATA)</label>
                     <input
                         type="text"
                         required
@@ -75,12 +78,12 @@ export default function AddFlightForm() {
                         placeholder="OTP"
                         value={formData.originIata}
                         onChange={(e) => setFormData({ ...formData, originIata: e.target.value.toUpperCase() })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-amber-400 font-bold focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-500/50 transition uppercase"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Destinație (IATA)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Destinație (IATA)</label>
                     <input
                         type="text"
                         required
@@ -88,34 +91,35 @@ export default function AddFlightForm() {
                         placeholder="LHR"
                         value={formData.destinationIata}
                         onChange={(e) => setFormData({ ...formData, destinationIata: e.target.value.toUpperCase() })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-emerald-400 font-bold focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-500/50 transition uppercase"
                     />
                 </div>
 
+                {/* --- AICI ESTE INPUT-UL NATIV PENTRU CALENDAR ȘI CEAS --- */}
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Data & Ora Plecare</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Dată & Oră Plecare</label>
                     <input
                         type="datetime-local"
                         required
                         value={formData.departureTime}
                         onChange={(e) => setFormData({ ...formData, departureTime: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-500/50 transition cursor-pointer [color-scheme:dark]"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Data & Ora Sosire</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Dată & Oră Sosire</label>
                     <input
                         type="datetime-local"
                         required
                         value={formData.arrivalTime}
                         onChange={(e) => setFormData({ ...formData, arrivalTime: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-500/50 transition cursor-pointer [color-scheme:dark]"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs text-slate-400 mb-1">Preț de Bază (€)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Preț de Bază (€)</label>
                     <input
                         type="number"
                         step="0.01"
@@ -123,15 +127,15 @@ export default function AddFlightForm() {
                         placeholder="120.00"
                         value={formData.basePrice}
                         onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-500/50 transition"
                     />
                 </div>
 
-                <div className="md:col-span-3 flex justify-end mt-2">
+                <div className="md:col-span-3 flex justify-end mt-4 pt-4 border-t border-slate-800">
                     <button
                         type="submit"
                         disabled={loading}
-                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm transition disabled:opacity-50"
+                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-8 py-3 rounded-xl text-sm transition shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center gap-2"
                     >
                         {loading ? 'Se creează...' : 'Creează Zbor Nou ➔'}
                     </button>
