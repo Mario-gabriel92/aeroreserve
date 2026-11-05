@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE și editoare
+.idea/
+
+# Python / Locust
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
